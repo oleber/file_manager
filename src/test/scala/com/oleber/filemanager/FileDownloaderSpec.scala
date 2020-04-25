@@ -1,14 +1,15 @@
 package com.oleber.filemanager
 
 import java.io.{File, PrintStream}
+import java.util.zip.{GZIPInputStream, GZIPOutputStream}
 
 import FileDownloader.URLFileDownloader
 import com.oleber.filemanager.FileCloserEnvironment.closeOnExit
+import com.oleber.filemanager.FileUploader.fileUploaderGroup
 import com.oleber.filemanager.FileUtils.withTempDirectory
 import org.specs2.concurrent.ExecutionEnv
 import org.specs2.mutable.Specification
 import org.specs2.specification.core.Fragments
-
 import scala.io.Source
 
 class FileDownloaderSpec(implicit ee: ExecutionEnv) extends Specification {
@@ -18,7 +19,7 @@ class FileDownloaderSpec(implicit ee: ExecutionEnv) extends Specification {
   "FileManager" should {
 
     "FileWorkerGroup basic" in {
-      val Some(ftr) = fileDownloaderGroup.doWith("string://foo"){is =>
+      val Some(ftr) = fileDownloaderGroup.doWith("string://foo") { is =>
         Source.fromInputStream(is).getLines().mkString
       }
 
@@ -32,7 +33,7 @@ class FileDownloaderSpec(implicit ee: ExecutionEnv) extends Specification {
     }
 
     "ResourceFileWorker" in {
-      val Some(ftr) = fileDownloaderGroup.doWith("classpath:ResourceFileWorker.txt"){ is =>
+      val Some(ftr) = fileDownloaderGroup.doWith("classpath:ResourceFileWorker.txt") { is =>
         Source.fromInputStream(is).getLines().mkString
       }
 
@@ -42,14 +43,57 @@ class FileDownloaderSpec(implicit ee: ExecutionEnv) extends Specification {
     "URLFileDownloader" in {
       val file = File.createTempFile("temp", null)
       file.deleteOnExit()
-      val printStream = new PrintStream(file)
-      printStream.print("some text")
-      printStream.close()
+
+      fileUploaderGroup.doWithSync(file.toString) { os =>
+        val printStream = new PrintStream(file)
+        printStream.print("some text: João")
+        printStream.close()
+      }
 
       val Some(ftr) = fileDownloaderGroup.slurp(file.toURI.toString)
 
-      ftr.map(body => new String(body) must_=== "some text").await
+      ftr.map(body => new String(body) must_=== "some text: João").await
     }
+
+    "FileDownloader Gzip" in {
+      val file = File.createTempFile("temp", null)
+      file.deleteOnExit()
+
+      fileUploaderGroup.doWithSync(
+        file.toString,
+        transformer = { os => new PrintStream(new GZIPOutputStream(os)) }
+      ) {
+        _.print("some text: João")
+      }
+
+      val Some(ftr) = fileDownloaderGroup.slurp(file.toURI.toString, { is => new GZIPInputStream(is) })
+
+      ftr.map(body => new String(body) must_=== "some text: João").await
+    }
+
+    "withSource" in {
+      val body =
+        """
+          |some text:
+          | João
+          |""".stripMargin
+      val file = File.createTempFile("temp", null)
+      file.deleteOnExit()
+
+      fileUploaderGroup.doWithSync(
+        file.toString,
+        transformer = { os => new PrintStream(new GZIPOutputStream(os)) }
+      ) {
+        _.print(body)
+      }
+
+      val Some(ftr) = fileDownloaderGroup.withSource(file.toURI.toString, { is => new GZIPInputStream(is) }) { source =>
+        source.getLines().mkString("\n")
+      }
+
+      ftr.map(body => new String(body) must_=== body).await
+    }
+
 
     val URLFileDownloaderRegexp = List(
       "http://www.goofle.com" -> true,
@@ -65,14 +109,16 @@ class FileDownloaderSpec(implicit ee: ExecutionEnv) extends Specification {
       }
     }
 
-    "FileFileDownloader" in withTempDirectory{ path =>
+    "FileFileDownloader" in withTempDirectory { path =>
       val file = path.resolve("foo.txt")
 
-      closeOnExit(new PrintStream(file.toFile)) {_.print("some text")}
+      closeOnExit(new PrintStream(file.toFile)) {
+        _.print("some text: João")
+      }
 
       val Some(ftr) = fileDownloaderGroup.slurp(file.toString)
 
-      ftr.map(body => new String(body) must_=== "some text").await
+      ftr.map(body => new String(body) must_=== "some text: João").await
     }
   }
 }
