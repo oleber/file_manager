@@ -11,7 +11,7 @@ import org.specs2.mutable.Specification
 import scala.concurrent.Future
 
 class FileUtilsSpec(implicit ee: ExecutionEnv) extends Specification {
-  def printFile(path: Path, body: String) = {
+  def printFile(path: Path, body: String): Unit = {
     closeOnExit(new PrintStream(path.toFile)) { printStream =>
       printStream.print(body)
     }
@@ -57,9 +57,17 @@ class FileUtilsSpec(implicit ee: ExecutionEnv) extends Specification {
       printFile(subDirectoryFile1, "text")
       printFile(subDirectoryFile2, "text")
 
-      walk(path, true).toList must_=== List(path, subDirectory, subDirectoryFile1, subDirectoryFile2, topFile)
-      walk(path, false).toList must_=== List(subDirectoryFile1, subDirectoryFile2, subDirectory, topFile, path)
-      walk(path).toList must_=== List(subDirectoryFile1, subDirectoryFile2, subDirectory, topFile, path)
+      val withDirectoryFirst = Set(
+        List(path, subDirectory, subDirectoryFile1, subDirectoryFile2, topFile),
+        List(path, subDirectory, subDirectoryFile2, subDirectoryFile1, topFile),
+      )
+      val withoutDirectoryFirst = Set(
+        List(subDirectoryFile1, subDirectoryFile2, subDirectory, topFile, path),
+        List(subDirectoryFile2, subDirectoryFile1, subDirectory, topFile, path),
+      )
+      withDirectoryFirst.contains(walk(path, directoryFirst = true).toList) must beTrue
+      withoutDirectoryFirst.contains(walk(path, directoryFirst = false).toList) must beTrue
+      withoutDirectoryFirst.contains(walk(path).toList) must beTrue
     }
 
     "closeOnExit sync" in {
