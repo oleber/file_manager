@@ -3,12 +3,50 @@ package com.oleber.filemanager
 import java.io.{ByteArrayInputStream, FileInputStream, InputStream}
 import java.net.URL
 
-import scala.concurrent.{ExecutionContext, Future, blocking}
+import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.io.Source
 
 trait FileDownloader extends FileWorker[InputStream]
 
-class FileDownloaderGroup(fileOpeners: FileDownloader*) extends FileWorkerGroup[InputStream](fileOpeners: _*) {
-  def slurp[T <: InputStream](path: String, transformer: InputStream => T = {is: InputStream => is})
+class FileDownloaderGroup(fileOpeners: FileDownloader*) {
+  def open(path: String)(implicit ec: ExecutionContext): Option[Future[InputStream]] = {
+    fileOpeners.foldLeft(None: Option[Future[InputStream]]) {
+      case (None, fileWorker) => fileWorker.open(path)
+      case (Some(ftr), fileWorker) =>
+        Some(ftr.recoverWith { case _ => fileWorker.open(path).getOrElse(ftr) })
+    }
+  }
+
+  def doWith[A, IS <: InputStream](path: String, transformer: InputStream => IS = { x: InputStream => x })
+                                  (cb: IS => A)
+                                  (implicit fc: FileCloserEnvironment[IS, A], ec: ExecutionContext)
+  : Option[Future[A]] = {
+    open(path).map(_.map { is => fc.closeOnExit(transformer(is))(cb) })
+  }
+
+  def doWithSync[A, IS <: InputStream](
+                                        path: String,
+                                        transformer: InputStream => IS = { x: InputStream => x },
+                                        atMost: Duration = 1.hour,
+                                      )
+                                      (cb: IS => A)
+                                      (implicit fc: FileCloserEnvironment[IS, A], ec: ExecutionContext)
+  : Option[A] = {
+    doWith(path, transformer)(cb).map(ftr => Await.result(ftr, atMost))
+  }
+
+  def withSource[A, IS <: InputStream](path: String, transformer: InputStream => IS = { x: InputStream => x })
+                                      (cb: Source => A)
+                                      (implicit fc: FileCloserEnvironment[IS, A], ec: ExecutionContext)
+  : Option[Future[A]] = {
+    doWith(path, transformer) { is => cb(Source.fromInputStream(is)) }
+  }
+
+  def slurp[T <: InputStream](
+                               path: String,
+                               transformer: InputStream => T = { is: InputStream => is }
+                             )
                              (implicit ec: ExecutionContext)
   : Option[Future[Array[Byte]]] = {
     doWith(path, transformer) { inputStream =>
@@ -53,7 +91,9 @@ object FileDownloader {
     override def open(path: String)(implicit ec: ExecutionContext): Option[Future[InputStream]] = {
       path match {
         case regex(matchPath) =>
-          Some( BlockingFuture { getClass.getClassLoader.getResource(matchPath).openStream() } )
+          Some(BlockingFuture {
+            getClass.getClassLoader.getResource(matchPath).openStream()
+          })
         case _ => None
       }
     }
@@ -65,7 +105,9 @@ object FileDownloader {
     override def open(path: String)(implicit ec: ExecutionContext): Option[Future[InputStream]] = {
       path match {
         case regex() =>
-          Some(BlockingFuture {new URL(path).openStream()})
+          Some(BlockingFuture {
+            new URL(path).openStream()
+          })
         case _ =>
           None
       }
@@ -74,7 +116,10 @@ object FileDownloader {
 
   object FileFileDownloader extends FileDownloader {
     override def open(path: String)(implicit ec: ExecutionContext): Option[Future[InputStream]] = {
-      Some(BlockingFuture {new FileInputStream(path)})
+      Some(BlockingFuture {
+        new FileInputStream(path)
+      })
     }
   }
+
 }
