@@ -4,7 +4,7 @@ Work with files where ever they are
 
 # Why did I do this work?
 
-I have 2 reasons:
+Working with Files was always a pain, here are some reasons for building this code:
  * It was fun
  * After many years using Scala to process files. Normal issues:
    * Files are available locally or remotely via http, s3, ...
