@@ -52,8 +52,8 @@ import scala.concurrent.Future
 import com.oleber.filemanager.FileDownloader.fileDownloaderGroup
 
 def load(path: String): Future[Int] = {
-    val result = fileDownloaderGroup.withSource(path, {is => new GZIPInputStream()}) {source =>
-        source.getLines().size()
+    val result = fileDownloaderGroup.withSource(path, {is => new GZIPInputStream(is)}) {source =>
+        source.getLines().size
     }
     
     result match {
