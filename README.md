@@ -27,11 +27,9 @@ import scala.io.Source
 import com.oleber.filemanager.FileDownloader.fileDownloaderGroup
 
 def load(path: String): Future[Int] = {
-  val result = fileDownloaderGroup.doWith(path) {inputStream =>
+  fileDownloaderGroup.doWith(path) {inputStream =>
     Source.fromInputStream(inputStream).getLines().size
   }
-    
-  result.getOrElse(throw new Exception("Can't open file"))
 }
 
 // local file
@@ -56,11 +54,7 @@ import scala.concurrent.Future
 import com.oleber.filemanager.FileDownloader.fileDownloaderGroup
 
 def load(path: String): Future[Int] = {
-    val result = fileDownloaderGroup.withSource(path) {source =>
-        source.getLines().size
-    }
-    
-    result.getOrElse(throw new Exception("Can't open file"))
+    fileDownloaderGroup.withSource(path) {_.getLines().size}
 }
 
 // local file
@@ -86,11 +80,9 @@ import scala.concurrent.Future
 import com.oleber.filemanager.FileDownloader.fileDownloaderGroup
 
 def load(path: String): Future[Int] = {
-    val result = fileDownloaderGroup.withSource(path, {is => new GZIPInputStream(is)}) {source =>
+    fileDownloaderGroup.withSource(path, {is => new GZIPInputStream(is)}) {source =>
         source.getLines().size
     }
-    
-    result.getOrElse(throw new Exception("Can't open file"))
 }
 
 // local file
@@ -113,9 +105,7 @@ import scala.concurrent.Future
 import com.oleber.filemanager.FileDownloader.fileDownloaderGroup
 
 def load(path: String): Future[Array[Byte]] = {
-    val result = fileDownloaderGroup.slurp(path)
-    
-    result.getOrElse(throw new Exception("Can't open file"))
+    fileDownloaderGroup.slurp(path)
 }
 
 // local file

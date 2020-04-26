@@ -19,7 +19,7 @@ class FileDownloaderSpec(implicit ee: ExecutionEnv) extends Specification {
   "FileManager" should {
 
     "FileWorkerGroup basic" in {
-      val Some(ftr) = fileDownloaderGroup.doWith("string://foo") { is =>
+      val ftr = fileDownloaderGroup.doWith("string://foo") { is =>
         Source.fromInputStream(is).getLines().mkString
       }
 
@@ -27,13 +27,13 @@ class FileDownloaderSpec(implicit ee: ExecutionEnv) extends Specification {
     }
 
     "slurp" in {
-      val Some(ftr) = fileDownloaderGroup.slurp("string://foo")
+      val ftr = fileDownloaderGroup.slurp("string://foo")
 
       ftr.map(array => new String(array) must be_===("foo")).await
     }
 
     "ResourceFileWorker" in {
-      val Some(ftr) = fileDownloaderGroup.doWith("classpath:ResourceFileWorker.txt") { is =>
+      val ftr = fileDownloaderGroup.doWith("classpath:ResourceFileWorker.txt") { is =>
         Source.fromInputStream(is).getLines().mkString
       }
 
@@ -50,7 +50,7 @@ class FileDownloaderSpec(implicit ee: ExecutionEnv) extends Specification {
         printStream.close()
       }
 
-      val Some(ftr) = fileDownloaderGroup.slurp(file.toURI.toString)
+      val ftr = fileDownloaderGroup.slurp(file.toURI.toString)
 
       ftr.map(body => new String(body) must_=== "some text: João").await
     }
@@ -66,7 +66,7 @@ class FileDownloaderSpec(implicit ee: ExecutionEnv) extends Specification {
         _.print("some text: João")
       }
 
-      val Some(ftr) = fileDownloaderGroup.slurp(file.toURI.toString, { is => new GZIPInputStream(is) })
+      val ftr = fileDownloaderGroup.slurp(file.toURI.toString, { is => new GZIPInputStream(is) })
 
       ftr.map(body => new String(body) must_=== "some text: João").await
     }
@@ -87,7 +87,7 @@ class FileDownloaderSpec(implicit ee: ExecutionEnv) extends Specification {
         _.print(body)
       }
 
-      val Some(ftr) = fileDownloaderGroup.withSource(file.toURI.toString, { is => new GZIPInputStream(is) }) { source =>
+      val ftr = fileDownloaderGroup.withSource(file.toURI.toString, { is => new GZIPInputStream(is) }) { source =>
         source.getLines().mkString("\n")
       }
 
@@ -116,7 +116,7 @@ class FileDownloaderSpec(implicit ee: ExecutionEnv) extends Specification {
         _.print("some text: João")
       }
 
-      val Some(ftr) = fileDownloaderGroup.slurp(file.toString)
+      val ftr = fileDownloaderGroup.slurp(file.toString)
 
       ftr.map(body => new String(body) must_=== "some text: João").await
     }

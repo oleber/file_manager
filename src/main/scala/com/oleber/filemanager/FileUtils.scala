@@ -42,12 +42,4 @@ object FileUtils {
         cb(tdd.path)
       }
   }
-//
-//
-//  def closeOnExit[A, B](a: A)
-//                       (cb: A => B)
-//                       (implicit ec: ExecutionContext, fileCloserEnvironment: FileCloserEnvironment[A, B])
-//  : B = {
-//    fileCloserEnvironment.close(a)(cb)
-//  }
 }
