@@ -15,7 +15,42 @@ I have 2 reasons:
 
 # Code Examples
 
-## Reading the number of lines in a files
+## Reading Files
+
+The examples will read the number of lines on a file.
+
+### Reading from an InputStream
+
+```scala
+import scala.concurrent.Future
+import scala.io.Source
+import com.oleber.filemanager.FileDownloader.fileDownloaderGroup
+
+def load(path: String): Future[Int] = {
+  val result = fileDownloaderGroup.doWith(path) {inputStream =>
+    Source.fromInputStream(inputStream).getLines().size
+  }
+    
+  result.getOrElse(throw new Exception("Can't open file"))
+}
+
+// local file
+load("local/path")
+
+// local file, with URI
+load("file:/local/path")
+
+// For testing, you may read from a string
+load("string://line1\nline2")
+
+// http file
+load("http://example.com")
+```
+
+### Reading from a Source
+
+In Scala, reading from a Source is more common.
+
 ```scala
 import scala.concurrent.Future
 import com.oleber.filemanager.FileDownloader.fileDownloaderGroup
@@ -41,7 +76,10 @@ load("string://line1\nline2")
 load("http://example.com")
 ```
 
-## Reading a GZip file
+### Reading a GZip file
+
+The some kind of code may be used to read other formats.
+
 ```scala
 import java.util.zip.GZIPInputStream
 import scala.concurrent.Future
@@ -68,3 +106,27 @@ load("string://line1\nline2")
 load("http://example.com")
 ```
 
+### Slurp all file in a go
+
+```scala
+import scala.concurrent.Future
+import com.oleber.filemanager.FileDownloader.fileDownloaderGroup
+
+def load(path: String): Future[Array[Byte]] = {
+    val result = fileDownloaderGroup.slurp(path)
+    
+    result.getOrElse(throw new Exception("Can't open file"))
+}
+
+// local file
+load("local/path")
+
+// local file, with URI
+load("file:/local/path")
+
+// For testing, you may read from a string
+load("string://line1\nline2")
+
+// http file
+load("http://example.com")
+```
