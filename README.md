@@ -22,14 +22,10 @@ import com.oleber.filemanager.FileDownloader.fileDownloaderGroup
 
 def load(path: String): Future[Int] = {
     val result = fileDownloaderGroup.withSource(path) {source =>
-        source.getLines().size()
+        source.getLines().size
     }
     
-    result match {
-      case Some(ftr) =>
-        // process future
-      case None => throw new Exception("Can't open file")
-    }
+    result.getOrElse(throw new Exception("Can't open file"))
 }
 
 // local file
@@ -56,11 +52,7 @@ def load(path: String): Future[Int] = {
         source.getLines().size
     }
     
-    result match {
-      case Some(ftr) =>
-        // process future
-      case None => throw new Exception("Can't open file")
-    }
+    result.getOrElse(throw new Exception("Can't open file"))
 }
 
 // local file
