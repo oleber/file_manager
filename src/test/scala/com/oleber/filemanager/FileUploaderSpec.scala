@@ -4,12 +4,11 @@ import java.io.{ByteArrayInputStream, PrintStream}
 import java.util.zip.{GZIPInputStream, GZIPOutputStream}
 
 import com.oleber.filemanager.FileCloserEnvironment.closeOnExit
+import com.oleber.filemanager.FileUploader.allFileUploaderGroup
 import com.oleber.filemanager.FileUtils.withTempDirectory
 import org.specs2.concurrent.ExecutionEnv
-import org.specs2.matcher.MatchResult
 import org.specs2.mutable.Specification
 
-import scala.concurrent.Future
 import scala.io.Source
 
 class FileUploaderSpec(implicit ee: ExecutionEnv) extends Specification {
@@ -37,7 +36,7 @@ class FileUploaderSpec(implicit ee: ExecutionEnv) extends Specification {
       readBufferFtr.map { buffer => new String(buffer) must_=== "some text" }
     }
 
-    "doWith GZip OutputStream" in withTempDirectory[Future[MatchResult[String]]] { path =>
+    "doWith GZip OutputStream" in withTempDirectory { path =>
       val file = path.resolve("foo.txt")
       val body = "some text: João"
 
@@ -55,6 +54,26 @@ class FileUploaderSpec(implicit ee: ExecutionEnv) extends Specification {
         result must_=== 2
         new String(bufferUngzip) must_=== body
         Source.fromInputStream(new GZIPInputStream(new ByteArrayInputStream(bufferGZip))).mkString must_=== body
+      }
+    }
+
+    "BashFileDownloader" in withTempDirectory { path =>
+      val file = path.resolve("foo.txt")
+      val command = s"bash: cat | gzip > $file"
+      val body = "some text: João"
+
+      for {
+        result <- allFileUploaderGroup.doWith(command) { outputStream =>
+          closeOnExit(new PrintStream(outputStream)) {
+            _.print(body)
+          }
+          2
+        }
+
+        buffer <- fileDownloaderGroup.slurp(file.toString, is => new GZIPInputStream(is))
+      } yield {
+        result must_=== 2
+        new String(buffer) must_=== body
       }
     }
   }

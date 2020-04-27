@@ -6,9 +6,7 @@ class FileCloserSpec extends Specification {
   "FileCloser" should {
     "AutoCloseableFileCloser" in {
       var closed = false
-      implicitly[FileCloser[AutoCloseable]].close(new AutoCloseable() {
-        override def close(): Unit = closed = true
-      })
+      implicitly[FileCloser[AutoCloseable]].close(() => closed = true)
 
       closed must beTrue
     }

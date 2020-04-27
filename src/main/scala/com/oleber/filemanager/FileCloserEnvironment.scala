@@ -7,7 +7,8 @@ abstract class FileCloserEnvironment[A: FileCloser, B] {
 }
 
 trait LowPriorityFileCloserEnvironment {
-  class SyncFileCloserEnvironment[A: FileCloser, B]() extends FileCloserEnvironment[A, B]{
+
+  class SyncFileCloserEnvironment[A: FileCloser, B]() extends FileCloserEnvironment[A, B] {
     override def closeOnExit(a: A)(cb: A => B)(implicit ec: ExecutionContext): B = {
       try {
         cb(a)
@@ -16,19 +17,18 @@ trait LowPriorityFileCloserEnvironment {
       }
     }
   }
+
   implicit def syncFileCloserEnvironment[A: FileCloser, B]: FileCloserEnvironment[A, B] = {
     new SyncFileCloserEnvironment[A, B]()
   }
 }
 
 object FileCloserEnvironment extends LowPriorityFileCloserEnvironment {
-  class AsyncFileCloserEnvironment[A: FileCloser, B]() extends FileCloserEnvironment[A, Future[B]]{
+
+  class AsyncFileCloserEnvironment[A: FileCloser, B]() extends FileCloserEnvironment[A, Future[B]] {
     override def closeOnExit(a: A)(cb: A => Future[B])(implicit ec: ExecutionContext): Future[B] = {
       cb(a)
-        .map { case b =>
-          implicitly[FileCloser[A]].close(a)
-          b
-        }
+        .andThen { case _ => implicitly[FileCloser[A]].close(a) }
     }
   }
 
@@ -36,7 +36,7 @@ object FileCloserEnvironment extends LowPriorityFileCloserEnvironment {
     new AsyncFileCloserEnvironment[A, B]()
   }
 
-  def closeOnExit[A: FileCloser, B](a:A)
+  def closeOnExit[A: FileCloser, B](a: A)
                                    (cb: A => B)
                                    (implicit fileCloserEnvironment: FileCloserEnvironment[A, B], ec: ExecutionContext)
   : B = {

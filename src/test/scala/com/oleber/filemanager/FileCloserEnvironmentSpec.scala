@@ -3,7 +3,7 @@ package com.oleber.filemanager
 import org.specs2.concurrent.ExecutionEnv
 import org.specs2.mutable.Specification
 
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.Future
 
 class FileCloserEnvironmentSpec(implicit ee: ExecutionEnv) extends Specification {
 
@@ -15,9 +15,7 @@ class FileCloserEnvironmentSpec(implicit ee: ExecutionEnv) extends Specification
     }
   }
 
-  implicit val fileCloser = new FileCloser[MyClass] {
-    override def close(t: MyClass): Unit = t.close
-  }
+  implicit val fileCloser: FileCloser[MyClass] = (t: MyClass) => t.close()
 
   "FileCloserEnvironment" should {
     "work sync" in {

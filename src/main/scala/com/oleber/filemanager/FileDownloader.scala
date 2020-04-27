@@ -1,17 +1,18 @@
 package com.oleber.filemanager
 
-import java.io.{ByteArrayInputStream, FileInputStream, InputStream}
+import java.io.{ByteArrayInputStream, FileInputStream, FilterInputStream, InputStream}
 import java.net.URL
 
 import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.{Await, ExecutionContext, Future, blocking}
 import scala.io.Source
+import scala.util.matching.Regex
 
 class FileDownloaderNotFoundException(msg: String) extends Exception(msg)
 
 trait FileDownloader extends FileWorker[InputStream]
 
-class FileDownloaderGroup(fileOpeners: FileDownloader*) {
+class FileDownloaderGroup(val fileOpeners: FileDownloader*) {
   def open(path: String)(implicit ec: ExecutionContext): Future[InputStream] = {
     val inputStreamFtrOpt = fileOpeners
       .foldLeft(None: Option[Future[InputStream]]) {
@@ -77,8 +78,10 @@ object FileDownloader {
     FileFileDownloader
   )
 
+  val allFileDownloaderGroup = new FileDownloaderGroup(Seq(BashFileDownloader) ++ fileDownloaderGroup.fileOpeners: _*)
+
   object StringFileDownloader extends FileDownloader {
-    val regExp = "string://(.*)".r
+    val regExp: Regex = "string:(.*)".r
 
     override def open(path: String)(implicit ec: ExecutionContext): Option[Future[InputStream]] = {
       path match {
@@ -91,7 +94,7 @@ object FileDownloader {
   }
 
   object ResourceFileDownloader extends FileDownloader {
-    val regex = "classpath:(.*)".r
+    val regex: Regex = "classpath:(.*)".r
 
     override def open(path: String)(implicit ec: ExecutionContext): Option[Future[InputStream]] = {
       path match {
@@ -105,7 +108,7 @@ object FileDownloader {
   }
 
   object URLFileDownloader extends FileDownloader {
-    val regex = "(?:http|https|file|jar):.*".r
+    val regex: Regex = "(?:http|https|file|jar):.*".r
 
     override def open(path: String)(implicit ec: ExecutionContext): Option[Future[InputStream]] = {
       path match {
@@ -115,6 +118,30 @@ object FileDownloader {
           })
         case _ =>
           None
+      }
+    }
+  }
+
+
+  object BashFileDownloader extends FileDownloader {
+    val regex: Regex = "bash:(.*)".r
+
+    override def open(path: String)(implicit ec: ExecutionContext): Option[Future[InputStream]] = {
+      path match {
+        case regex(command) =>
+          Some(BlockingFuture {
+            val processBuilder = new java.lang.ProcessBuilder("bash", "-c", command)
+            val process = processBuilder.start()
+            new FilterInputStream(process.getInputStream) {
+              override def close(): Unit = {
+                super.close()
+                blocking {
+                  process.waitFor()
+                }
+              }
+            }
+          })
+        case _ => None
       }
     }
   }
