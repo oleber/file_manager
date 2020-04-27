@@ -118,9 +118,12 @@ import com.oleber.filemanager.FileDownloader.allFileDownloaderGroup
 val result: Future[Array[Byte]] = allFileDownloaderGroup.slurp("bash: echo 'Hello world!!!'")
 ```
 
-Bash is far from safe, so it's relegated to `allFileDownloaderGroup`. 
-`allFileDownloaderGroup` shall have all the `FileDownloader`'s on fileDownloaderGroup
-and this unsafe ones.
+With big power comes big responsibility. Many tasks may be done on the bash without use of 
+other Java libraries. 
+
+**Note:** Running commands of Bash is far from safe, so one new variable was create.
+Bash actions are relegated to `allFileDownloaderGroup`. `allFileDownloaderGroup` shall have
+all the `FileDownloader`'s on `fileDownloaderGroup` and a few that look more unsafe ones.
 
 ### Adding more FileDownloader is easy
 
