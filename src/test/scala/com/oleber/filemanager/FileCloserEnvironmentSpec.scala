@@ -15,9 +15,7 @@ class FileCloserEnvironmentSpec(implicit ee: ExecutionEnv) extends Specification
     }
   }
 
-  implicit val fileCloser = new FileCloser[MyClass] {
-    override def close(t: MyClass): Unit = t.close
-  }
+  implicit val fileCloser: FileCloser[MyClass] = (t: MyClass) => t.close()
 
   "FileCloserEnvironment" should {
     "work sync" in {

@@ -29,7 +29,7 @@ object FileUtils {
 
   case class TempDirectoryDeleter(path: Path) extends AutoCloseable {
     override def close(): Unit = {
-      walk(path, false)
+      walk(path)
         .foreach(path => Files.delete(path))
     }
   }

@@ -75,7 +75,7 @@ load("http://example.com")
 
 ### Reading from a Source
 
-In Scala, reading from a Source is more common case. We have a function that wrapes the 
+In Scala, reading from a Source is more common case. We have a function that wraps the 
 InputStream on a Source object.
 
 ```scala  
@@ -109,6 +109,18 @@ import com.oleber.filemanager.FileDownloader.fileDownloaderGroup
 
 val result: Future[Array[Byte]] = fileDownloaderGroup.slurp("path/to/file")
 ```
+
+### Use bash as InputStream
+```scala
+import scala.concurrent.Future
+import com.oleber.filemanager.FileDownloader.allFileDownloaderGroup
+
+val result: Future[Array[Byte]] = allFileDownloaderGroup.slurp("bash: echo 'Hello world!!!'")
+```
+
+Bash is far from safe, so it's relegated to `allFileDownloaderGroup`. 
+`allFileDownloaderGroup` shall have all the `FileDownloader`'s on fileDownloaderGroup
+and this unsafe ones.
 
 ### Adding more FileDownloader is easy
 
