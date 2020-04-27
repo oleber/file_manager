@@ -21,7 +21,7 @@ class FileUploaderSpec(implicit ee: ExecutionEnv) extends Specification {
     "doWith" in withTempDirectory { path =>
       val file = path.resolve("foo.txt")
 
-      val Some(writeFtr) = fileUploaderGroup.doWith(file.toString) { outputStream =>
+      val writeFtr = fileUploaderGroup.doWith(file.toString) { outputStream =>
         closeOnExit(new PrintStream(outputStream)) { printStream =>
           printStream.print("some text")
         }
@@ -31,8 +31,7 @@ class FileUploaderSpec(implicit ee: ExecutionEnv) extends Specification {
       val readBufferFtr = writeFtr
         .flatMap { result =>
           result must_=== 2
-          val Some(bufferFtr) = fileDownloaderGroup.slurp(file.toString)
-          bufferFtr
+          fileDownloaderGroup.slurp(file.toString)
         }
 
       readBufferFtr.map { buffer => new String(buffer) must_=== "some text" }
@@ -40,32 +39,23 @@ class FileUploaderSpec(implicit ee: ExecutionEnv) extends Specification {
 
     "doWith GZip OutputStream" in withTempDirectory[Future[MatchResult[String]]] { path =>
       val file = path.resolve("foo.txt")
+      val body = "some text: João"
 
-      val Some(writeFtr) = fileUploaderGroup.doWith(file.toString, os => new GZIPOutputStream(os)) { outputStream =>
-        closeOnExit(new PrintStream(outputStream)) {
-          _.print("some text")
+      for {
+        result <- fileUploaderGroup.doWith(file.toString, os => new GZIPOutputStream(os)) { outputStream =>
+          closeOnExit(new PrintStream(outputStream)) {
+            _.print(body)
+          }
+          2
         }
-        2
-      }
 
-      val readBufferUngzipFtr = writeFtr.flatMap { result =>
+        bufferUngzip <- fileDownloaderGroup.slurp(file.toString, is => new GZIPInputStream(is))
+        bufferGZip <- fileDownloaderGroup.slurp(file.toString)
+      } yield {
         result must_=== 2
-        val Some(bufferFtr) = fileDownloaderGroup.slurp(file.toString, is => new GZIPInputStream(is))
-        bufferFtr
+        new String(bufferUngzip) must_=== body
+        Source.fromInputStream(new GZIPInputStream(new ByteArrayInputStream(bufferGZip))).mkString must_=== body
       }
-      readBufferUngzipFtr.map { buffer => new String(buffer) must_=== "some text" }
-
-      val readBufferGzipFtr = writeFtr.flatMap { result =>
-        result must_=== 2
-        val Some(bufferFtr) = fileDownloaderGroup.slurp(file.toString)
-        bufferFtr
-      }
-
-      readBufferGzipFtr
-        .map { buffer =>
-          val source = Source.fromInputStream(new GZIPInputStream(new ByteArrayInputStream(buffer)))
-          source.mkString must_=== "some text"
-        }
     }
   }
 }

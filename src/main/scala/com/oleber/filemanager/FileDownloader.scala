@@ -7,22 +7,27 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.io.Source
 
+class FileDownloaderNotFoundException(msg: String) extends Exception(msg)
+
 trait FileDownloader extends FileWorker[InputStream]
 
 class FileDownloaderGroup(fileOpeners: FileDownloader*) {
-  def open(path: String)(implicit ec: ExecutionContext): Option[Future[InputStream]] = {
-    fileOpeners.foldLeft(None: Option[Future[InputStream]]) {
-      case (None, fileWorker) => fileWorker.open(path)
-      case (Some(ftr), fileWorker) =>
-        Some(ftr.recoverWith { case _ => fileWorker.open(path).getOrElse(ftr) })
-    }
+  def open(path: String)(implicit ec: ExecutionContext): Future[InputStream] = {
+    val inputStreamFtrOpt = fileOpeners
+      .foldLeft(None: Option[Future[InputStream]]) {
+        case (None, fileWorker) => fileWorker.open(path)
+        case (Some(ftr), fileWorker) =>
+          Some(ftr.recoverWith { case _ => fileWorker.open(path).getOrElse(ftr) })
+      }
+
+    inputStreamFtrOpt.getOrElse(throw new FileDownloaderNotFoundException(s"File downloader not found $path"))
   }
 
   def doWith[A, IS <: InputStream](path: String, transformer: InputStream => IS = { x: InputStream => x })
                                   (cb: IS => A)
                                   (implicit fc: FileCloserEnvironment[IS, A], ec: ExecutionContext)
-  : Option[Future[A]] = {
-    open(path).map(_.map { is => fc.closeOnExit(transformer(is))(cb) })
+  : Future[A] = {
+    open(path).map { is => fc.closeOnExit(transformer(is))(cb) }
   }
 
   def doWithSync[A, IS <: InputStream](
@@ -32,14 +37,14 @@ class FileDownloaderGroup(fileOpeners: FileDownloader*) {
                                       )
                                       (cb: IS => A)
                                       (implicit fc: FileCloserEnvironment[IS, A], ec: ExecutionContext)
-  : Option[A] = {
-    doWith(path, transformer)(cb).map(ftr => Await.result(ftr, atMost))
+  : A = {
+    Await.result(doWith(path, transformer)(cb), atMost)
   }
 
   def withSource[A, IS <: InputStream](path: String, transformer: InputStream => IS = { x: InputStream => x })
                                       (cb: Source => A)
                                       (implicit fc: FileCloserEnvironment[IS, A], ec: ExecutionContext)
-  : Option[Future[A]] = {
+  : Future[A] = {
     doWith(path, transformer) { is => cb(Source.fromInputStream(is)) }
   }
 
@@ -48,7 +53,7 @@ class FileDownloaderGroup(fileOpeners: FileDownloader*) {
                                transformer: InputStream => T = { is: InputStream => is }
                              )
                              (implicit ec: ExecutionContext)
-  : Option[Future[Array[Byte]]] = {
+  : Future[Array[Byte]] = {
     doWith(path, transformer) { inputStream =>
       import java.io.ByteArrayOutputStream
       val result = new ByteArrayOutputStream
