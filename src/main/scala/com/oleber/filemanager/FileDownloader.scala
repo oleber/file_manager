@@ -1,10 +1,7 @@
 package com.oleber.filemanager
 
-import java.io.{ByteArrayInputStream, FileInputStream, FilterInputStream, FilterOutputStream, InputStream, OutputStream}
+import java.io.{ByteArrayInputStream, FileInputStream, FilterInputStream, InputStream}
 import java.net.URL
-
-import com.oleber.filemanager.FileDownloader.ResourceFileDownloader
-import com.oleber.filemanager.FileDownloader.ResourceFileDownloader.getClass
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future, blocking}
@@ -128,23 +125,24 @@ object FileDownloader {
 
   object BashFileDownloader extends FileDownloader {
     val regex: Regex = "bash:(.*)".r
+
     override def open(path: String)(implicit ec: ExecutionContext): Option[Future[InputStream]] = {
-        path match {
-          case regex(command) =>
-            Some(BlockingFuture {
-              val processBuilder = new java.lang.ProcessBuilder("bash", "-c", command)
-              val process = processBuilder.start()
-              new FilterInputStream(process.getInputStream) {
-                override def close(): Unit = {
-                  super.close()
-                  blocking {
-                    process.waitFor()
-                  }
+      path match {
+        case regex(command) =>
+          Some(BlockingFuture {
+            val processBuilder = new java.lang.ProcessBuilder("bash", "-c", command)
+            val process = processBuilder.start()
+            new FilterInputStream(process.getInputStream) {
+              override def close(): Unit = {
+                super.close()
+                blocking {
+                  process.waitFor()
                 }
               }
-            })
-          case _ => None
-        }
+            }
+          })
+        case _ => None
+      }
     }
   }
 
@@ -155,4 +153,5 @@ object FileDownloader {
       })
     }
   }
+
 }

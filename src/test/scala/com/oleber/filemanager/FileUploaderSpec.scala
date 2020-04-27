@@ -2,11 +2,13 @@ package com.oleber.filemanager
 
 import java.io.{ByteArrayInputStream, PrintStream}
 import java.util.zip.{GZIPInputStream, GZIPOutputStream}
+
 import com.oleber.filemanager.FileCloserEnvironment.closeOnExit
 import com.oleber.filemanager.FileUploader.allFileUploaderGroup
 import com.oleber.filemanager.FileUtils.withTempDirectory
 import org.specs2.concurrent.ExecutionEnv
 import org.specs2.mutable.Specification
+
 import scala.io.Source
 
 class FileUploaderSpec(implicit ee: ExecutionEnv) extends Specification {

@@ -20,7 +20,7 @@ class FileUtilsSpec(implicit ee: ExecutionEnv) extends Specification {
   "FileUtils" should {
     "withTempDirectory" in {
       var collectPath = Option.empty[Path]
-      val result = withTempDirectory{ path =>
+      val result = withTempDirectory { path =>
         collectPath = Some(path)
 
         val topFile = path.resolve("text.txt")
@@ -45,7 +45,7 @@ class FileUtilsSpec(implicit ee: ExecutionEnv) extends Specification {
       collectPath.get.toFile.isDirectory must beFalse
     }
 
-    "walk" in withTempDirectory{ path =>
+    "walk" in withTempDirectory { path =>
       val topFile = path.resolve("text.txt")
       val subDirectory = path.resolve("subPath")
       val subDirectoryFile1 = subDirectory.resolve("text1.txt")

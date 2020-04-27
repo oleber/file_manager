@@ -3,7 +3,7 @@ package com.oleber.filemanager
 import org.specs2.concurrent.ExecutionEnv
 import org.specs2.mutable.Specification
 
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.Future
 
 class FileCloserEnvironmentSpec(implicit ee: ExecutionEnv) extends Specification {
 

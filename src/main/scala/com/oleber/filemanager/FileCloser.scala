@@ -5,7 +5,9 @@ trait FileCloser[-T] {
 }
 
 object FileCloser {
+
   implicit object AutoCloseableFileCloser extends FileCloser[AutoCloseable] {
     override def close(autoCloseable: AutoCloseable): Unit = autoCloseable.close()
   }
+
 }

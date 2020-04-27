@@ -1,6 +1,6 @@
 package com.oleber.filemanager
 
-import java.io.{FileOutputStream, FilterOutputStream, InputStream, OutputStream}
+import java.io.{FileOutputStream, FilterOutputStream, OutputStream}
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future, blocking}

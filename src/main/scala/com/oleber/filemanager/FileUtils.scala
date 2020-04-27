@@ -38,7 +38,7 @@ object FileUtils {
                           (implicit ec: ExecutionContext, fce: FileCloserEnvironment[TempDirectoryDeleter, A])
   : A = {
     FileCloserEnvironment
-      .closeOnExit(TempDirectoryDeleter(Files.createTempDirectory(null))){ tdd =>
+      .closeOnExit(TempDirectoryDeleter(Files.createTempDirectory(null))) { tdd =>
         cb(tdd.path)
       }
   }

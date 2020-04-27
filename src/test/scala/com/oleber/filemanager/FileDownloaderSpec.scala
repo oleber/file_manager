@@ -3,8 +3,8 @@ package com.oleber.filemanager
 import java.io.{File, PrintStream}
 import java.util.zip.{GZIPInputStream, GZIPOutputStream}
 
-import FileDownloader.{URLFileDownloader, allFileDownloaderGroup}
 import com.oleber.filemanager.FileCloserEnvironment.closeOnExit
+import com.oleber.filemanager.FileDownloader.{URLFileDownloader, allFileDownloaderGroup}
 import com.oleber.filemanager.FileUploader.fileUploaderGroup
 import com.oleber.filemanager.FileUtils.withTempDirectory
 import org.specs2.concurrent.ExecutionEnv

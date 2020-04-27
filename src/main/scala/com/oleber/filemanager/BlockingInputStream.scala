@@ -2,8 +2,7 @@ package com.oleber.filemanager
 
 import java.io.{InputStream, OutputStream}
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.blocking
+import scala.concurrent.{ExecutionContext, blocking}
 
 class BlockingInputStream(is: InputStream)(implicit ec: ExecutionContext) extends InputStream {
   override def read(): Int = blocking {
