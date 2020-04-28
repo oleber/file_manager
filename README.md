@@ -182,14 +182,7 @@ val Some(ftrIS) = FileFileDownloader().open("/tmp/somefile.txt")
 In order to reduce risks, `FileFileDownloader()` accepts a regexp to filter file paths. 
 For example you can avoid having the `/.<name>/` directories or files to be read.
 
-`FileFileDownloader(Some("*/[^.].*")).open("~/.ssh/id_rsa")` will throw an 
+`FileFileDownloader(Some("/[^.]")).open("~/.ssh/id_rsa")` will throw an 
+`FileFileDownloaderException` 
 
-  val fileDownloaderGroup = new FileDownloaderGroup(
-    StringFileDownloader,
-    ResourceFileDownloader,
-    URLFileDownloader,
-    FileFileDownloader()
-  )
-
-
-TODO: All methods
+TODO: All FileUploader
