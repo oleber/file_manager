@@ -1,6 +1,10 @@
 package com.oleber.filemanager
 
-import java.io.{FileOutputStream, FilterOutputStream, OutputStream}
+import java.io.{FileInputStream, FileOutputStream, FilterOutputStream, OutputStream}
+import java.nio.file.Paths
+
+import com.oleber.filemanager.FileDownloader.FileFileDownloader.FileFileDownloaderException
+import com.oleber.filemanager.FileUploader.FileFileUploader.FileFileUploaderException
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future, blocking}
@@ -42,7 +46,7 @@ class FileUploaderGroup(val fileUploaders: FileUploader*) {
 trait FileUploader extends FileWorker[OutputStream]
 
 object FileUploader {
-  val fileUploaderGroup = new FileUploaderGroup(FileFileUploader)
+  val fileUploaderGroup = new FileUploaderGroup(FileFileUploader())
 
   val allFileUploaderGroup = new FileUploaderGroup(Seq(BashFileUploader) ++ fileUploaderGroup.fileUploaders: _*)
 
@@ -69,11 +73,34 @@ object FileUploader {
     }
   }
 
-  object FileFileUploader extends FileUploader {
+  object FileFileUploader {
+
+    case class FileFileUploaderException(msg: String) extends Exception(msg)
+
+  }
+
+  case class FileFileUploader(pathRegexOpt: Option[Regex] = None) extends FileUploader {
+    val regex: Regex = "(?:file:)?(.*)".r
+
     override def open(path: String)(implicit ec: ExecutionContext): Option[Future[OutputStream]] = {
-      Some(Future {
-        new FileOutputStream(path)
-      })
+      path match {
+        case regex(cleanPath) =>
+          Some(BlockingFuture {
+            pathRegexOpt match {
+              case Some(regex) =>
+                Paths.get(cleanPath).toAbsolutePath.toString match {
+                  case regex() =>
+                    new FileOutputStream(cleanPath)
+                  case absolutePath =>
+                    throw FileFileUploaderException(s"File $absolutePath isn't safe to write")
+                }
+              case None =>
+                new FileOutputStream(cleanPath)
+            }
+          })
+        case _ =>
+          None
+      }
     }
   }
 

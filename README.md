@@ -156,7 +156,7 @@ you can use the one available on FileDownloader.fileDownloaderGroup
     StringFileDownloader,
     ResourceFileDownloader,
     URLFileDownloader,
-    FileFileDownloader
+    FileFileDownloader()
   )
 ```
  
@@ -168,5 +168,28 @@ FileCloser. The code already provides the support for AutoCloseable with a code 
     override def close(autoCloseable: AutoCloseable): Unit = autoCloseable.close()
   }
 ``` 
+
+### Loading a File
+
+`FileFileDownloader()` will catchup all the path's. Accepts a prefix like `file:`.
+
+```
+val Some(ftrIS) = FileFileDownloader().open("file:/tmp/somefile.txt")
+val Some(ftrIS) = FileFileDownloader().open("/tmp/somefile.txt")
+```
+
+#### Filter paths
+In order to reduce risks, `FileFileDownloader()` accepts a regexp to filter file paths. 
+For example you can avoid having the `/.<name>/` directories or files to be read.
+
+`FileFileDownloader(Some("*/[^.].*")).open("~/.ssh/id_rsa")` will throw an 
+
+  val fileDownloaderGroup = new FileDownloaderGroup(
+    StringFileDownloader,
+    ResourceFileDownloader,
+    URLFileDownloader,
+    FileFileDownloader()
+  )
+
 
 TODO: All methods

@@ -1,12 +1,15 @@
 package com.oleber.filemanager
 
 import java.io.{File, PrintStream}
+import java.nio.file.Path
 import java.util.zip.{GZIPInputStream, GZIPOutputStream}
 
 import com.oleber.filemanager.FileCloserEnvironment.closeOnExit
-import com.oleber.filemanager.FileDownloader.{URLFileDownloader, allFileDownloaderGroup}
+import com.oleber.filemanager.FileDownloader.{StringFileDownloader, URLFileDownloader, allFileDownloaderGroup}
 import com.oleber.filemanager.FileUploader.fileUploaderGroup
 import com.oleber.filemanager.FileUtils.withTempDirectory
+import com.oleber.filemanager.fileDownloader.FileFileDownloader
+import com.oleber.filemanager.fileDownloader.FileFileDownloader.FileFileDownloaderException
 import org.specs2.concurrent.ExecutionEnv
 import org.specs2.mutable.Specification
 import org.specs2.specification.core.Fragments
@@ -107,7 +110,6 @@ class FileDownloaderSpec(implicit ee: ExecutionEnv) extends Specification {
       ftr.map(body => new String(body) must_=== body).await
     }
 
-
     val URLFileDownloaderRegexp = List(
       "http://www.goofle.com" -> true,
       "https://www.goofle.com" -> true,
@@ -120,18 +122,6 @@ class FileDownloaderSpec(implicit ee: ExecutionEnv) extends Specification {
       s"URLFileDownloader regexp: '$str' must_=== $expected" in {
         URLFileDownloader.regex.pattern.matcher(str).matches() must be_===(expected)
       }
-    }
-
-    "FileFileDownloader" in withTempDirectory { path =>
-      val file = path.resolve("foo.txt")
-
-      closeOnExit(new PrintStream(file.toFile)) {
-        _.print("some text: João")
-      }
-
-      val ftr = fileDownloaderGroup.slurp(file.toString)
-
-      ftr.map(body => new String(body) must_=== "some text: João").await
     }
   }
 }
