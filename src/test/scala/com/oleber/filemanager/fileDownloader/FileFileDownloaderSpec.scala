@@ -29,7 +29,7 @@ class FileFileDownloaderSpec(implicit ee: ExecutionEnv) extends Specification {
       val readableFilePath = createFile(readablePath)
       val notReadableFilePath = createFile(notReadablePath)
 
-      val fileDownloaderGroup = new FileDownloaderGroup(FileFileDownloader(excludeRegexp = Some(s".*/\\..*".r)))
+      val fileDownloaderGroup = new FileDownloaderGroup(FileFileDownloader(excludeRegexp = Some(s"/\\.".r)))
 
       // then
       new String(fileDownloaderGroup.slurpSync(notReadableFilePath.toString)) must throwA[FileFileDownloaderException]

@@ -5,11 +5,10 @@ import java.nio.file.Path
 import java.util.zip.{GZIPInputStream, GZIPOutputStream}
 
 import com.oleber.filemanager.FileCloserEnvironment.closeOnExit
-import com.oleber.filemanager.FileDownloader.FileFileDownloader.FileFileDownloaderException
-import com.oleber.filemanager.FileDownloader.{FileFileDownloader, StringFileDownloader}
-import com.oleber.filemanager.FileUploader.FileFileUploader.FileFileUploaderException
-import com.oleber.filemanager.FileUploader.{FileFileUploader, allFileUploaderGroup}
+import com.oleber.filemanager.FileUploader.allFileUploaderGroup
 import com.oleber.filemanager.FileUtils.withTempDirectory
+import com.oleber.filemanager.fileUploader.FileFileUploader
+import com.oleber.filemanager.fileUploader.FileFileUploader.FileFileUploaderException
 import org.specs2.concurrent.ExecutionEnv
 import org.specs2.mutable.Specification
 
@@ -80,43 +79,5 @@ class FileUploaderSpec(implicit ee: ExecutionEnv) extends Specification {
         new String(buffer) must_=== body
       }
     }
-
-    "FileFileUploader filter file paths" in withTempDirectory { basePath =>
-
-      def createFile(path: Path) = {
-        path.toFile.mkdir()
-        path.resolve("some_file.txt")
-      }
-      val pathReadable = basePath.resolve("readable")
-      val pathNotReadable = basePath.resolve("not_readable")
-
-      val localFileUploaderGroup = new FileUploaderGroup(FileFileUploader(Some(s"""\\Q${pathReadable}\\E.*""".r)))
-
-      val filePathReadable = createFile(pathReadable)
-      val filePathNotReadable = createFile(pathNotReadable)
-
-      def checkReadable(path: String, body: String) = {
-        localFileUploaderGroup.doWithSync(path, os => new PrintStream(os)) {
-          _.print(body)
-        }
-        new String(fileDownloaderGroup.slurpSync(path)).trim must_=== body
-      }
-
-      checkReadable(filePathReadable.toUri.toString, "some test uri")
-      checkReadable(filePathReadable.toString, "some test raw")
-      filePathReadable.toFile.exists() must beTrue
-
-      def checkThrows(path: String) = {
-        localFileUploaderGroup.doWithSync(path, os => new PrintStream(os)) {
-          _.print("some test")
-        } must throwA[FileFileUploaderException]
-      }
-
-      checkThrows(filePathNotReadable.toUri.toString)
-      checkThrows(filePathNotReadable.toString)
-      filePathNotReadable.toFile.exists() must beFalse
-    }
-
   }
-
 }
