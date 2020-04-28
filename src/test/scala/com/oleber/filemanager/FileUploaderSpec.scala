@@ -1,11 +1,14 @@
 package com.oleber.filemanager
 
 import java.io.{ByteArrayInputStream, PrintStream}
+import java.nio.file.Path
 import java.util.zip.{GZIPInputStream, GZIPOutputStream}
 
 import com.oleber.filemanager.FileCloserEnvironment.closeOnExit
 import com.oleber.filemanager.FileUploader.allFileUploaderGroup
 import com.oleber.filemanager.FileUtils.withTempDirectory
+import com.oleber.filemanager.fileUploader.FileFileUploader
+import com.oleber.filemanager.fileUploader.FileFileUploader.FileFileUploaderException
 import org.specs2.concurrent.ExecutionEnv
 import org.specs2.mutable.Specification
 
@@ -57,7 +60,7 @@ class FileUploaderSpec(implicit ee: ExecutionEnv) extends Specification {
       }
     }
 
-    "BashFileDownloader" in withTempDirectory { path =>
+    "BashFileUploader" in withTempDirectory { path =>
       val file = path.resolve("foo.txt")
       val command = s"bash: cat | gzip > $file"
       val body = "some text: João"

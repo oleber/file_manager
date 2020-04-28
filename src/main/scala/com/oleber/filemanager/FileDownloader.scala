@@ -1,7 +1,9 @@
 package com.oleber.filemanager
 
-import java.io.{ByteArrayInputStream, FileInputStream, FilterInputStream, InputStream}
+import java.io.{ByteArrayInputStream, FilterInputStream, InputStream}
 import java.net.URL
+
+import com.oleber.filemanager.fileDownloader.FileFileDownloader
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future, blocking}
@@ -67,6 +69,16 @@ class FileDownloaderGroup(val fileOpeners: FileDownloader*) {
       result.toByteArray
     }
   }
+
+  def slurpSync[T <: InputStream](
+                                   path: String,
+                                   transformer: InputStream => T = { is: InputStream => is },
+                                   atMost: Duration = 1.hour,
+                                 )
+                                 (implicit ec: ExecutionContext)
+  : Array[Byte] = {
+    Await.result(slurp(path, transformer), atMost)
+  }
 }
 
 object FileDownloader {
@@ -75,7 +87,7 @@ object FileDownloader {
     StringFileDownloader,
     ResourceFileDownloader,
     URLFileDownloader,
-    FileFileDownloader
+    FileFileDownloader()
   )
 
   val allFileDownloaderGroup = new FileDownloaderGroup(Seq(BashFileDownloader) ++ fileDownloaderGroup.fileOpeners: _*)
@@ -146,12 +158,5 @@ object FileDownloader {
     }
   }
 
-  object FileFileDownloader extends FileDownloader {
-    override def open(path: String)(implicit ec: ExecutionContext): Option[Future[InputStream]] = {
-      Some(BlockingFuture {
-        new FileInputStream(path)
-      })
-    }
-  }
 
 }

@@ -1,11 +1,12 @@
 package com.oleber.filemanager
 
-import java.io.{FileOutputStream, FilterOutputStream, OutputStream}
+import java.io.{FilterOutputStream, OutputStream}
+
+import com.oleber.filemanager.fileUploader.FileFileUploader
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future, blocking}
 import scala.util.matching.Regex
-
 
 class FileUploaderNotFoundException(msg: String) extends Exception(msg)
 
@@ -42,7 +43,7 @@ class FileUploaderGroup(val fileUploaders: FileUploader*) {
 trait FileUploader extends FileWorker[OutputStream]
 
 object FileUploader {
-  val fileUploaderGroup = new FileUploaderGroup(FileFileUploader)
+  val fileUploaderGroup = new FileUploaderGroup(FileFileUploader())
 
   val allFileUploaderGroup = new FileUploaderGroup(Seq(BashFileUploader) ++ fileUploaderGroup.fileUploaders: _*)
 
@@ -68,14 +69,4 @@ object FileUploader {
       }
     }
   }
-
-  object FileFileUploader extends FileUploader {
-    override def open(path: String)(implicit ec: ExecutionContext): Option[Future[OutputStream]] = {
-      Some(Future {
-        new FileOutputStream(path)
-      })
-    }
-  }
-
-
 }
