@@ -59,25 +59,5 @@ class FileUploaderSpec(implicit ee: ExecutionEnv) extends Specification {
         Source.fromInputStream(new GZIPInputStream(new ByteArrayInputStream(bufferGZip))).mkString must_=== body
       }
     }
-
-    "BashFileUploader" in withTempDirectory { path =>
-      val file = path.resolve("foo.txt")
-      val command = s"bash: cat | gzip > $file"
-      val body = "some text: João"
-
-      for {
-        result <- allFileUploaderGroup.doWith(command) { outputStream =>
-          closeOnExit(new PrintStream(outputStream)) {
-            _.print(body)
-          }
-          2
-        }
-
-        buffer <- fileDownloaderGroup.slurp(file.toString, is => new GZIPInputStream(is))
-      } yield {
-        result must_=== 2
-        new String(buffer) must_=== body
-      }
-    }
   }
 }

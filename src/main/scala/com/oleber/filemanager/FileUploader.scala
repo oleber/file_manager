@@ -2,7 +2,7 @@ package com.oleber.filemanager
 
 import java.io.{FilterOutputStream, OutputStream}
 
-import com.oleber.filemanager.fileUploader.FileFileUploader
+import com.oleber.filemanager.fileUploader.{BashFileUploader, FileFileUploader}
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future, blocking}
@@ -46,27 +46,4 @@ object FileUploader {
   val fileUploaderGroup = new FileUploaderGroup(FileFileUploader())
 
   val allFileUploaderGroup = new FileUploaderGroup(Seq(BashFileUploader) ++ fileUploaderGroup.fileUploaders: _*)
-
-  object BashFileUploader extends FileUploader {
-    val regex: Regex = "bash:(.*)".r
-
-    override def open(path: String)(implicit ec: ExecutionContext): Option[Future[OutputStream]] = {
-      path match {
-        case regex(command) =>
-          Some(BlockingFuture {
-            val processBuilder = new java.lang.ProcessBuilder("bash", "-c", command)
-            val process = processBuilder.start()
-            new FilterOutputStream(process.getOutputStream) {
-              override def close(): Unit = {
-                super.close()
-                blocking {
-                  process.waitFor()
-                }
-              }
-            }
-          })
-        case _ => None
-      }
-    }
-  }
 }

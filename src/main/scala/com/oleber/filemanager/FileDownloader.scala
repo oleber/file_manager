@@ -3,7 +3,7 @@ package com.oleber.filemanager
 import java.io.{ByteArrayInputStream, FilterInputStream, InputStream}
 import java.net.URL
 
-import com.oleber.filemanager.fileDownloader.FileFileDownloader
+import com.oleber.filemanager.fileDownloader.{BashFileDownloader, FileFileDownloader, ResourceFileDownloader, StringFileDownloader, URLFileDownloader}
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future, blocking}
@@ -91,72 +91,4 @@ object FileDownloader {
   )
 
   val allFileDownloaderGroup = new FileDownloaderGroup(Seq(BashFileDownloader) ++ fileDownloaderGroup.fileOpeners: _*)
-
-  object StringFileDownloader extends FileDownloader {
-    val regExp: Regex = "string:(.*)".r
-
-    override def open(path: String)(implicit ec: ExecutionContext): Option[Future[InputStream]] = {
-      path match {
-        case regExp(buffer) => Some(Future {
-          new ByteArrayInputStream(buffer.getBytes)
-        })
-        case _ => None
-      }
-    }
-  }
-
-  object ResourceFileDownloader extends FileDownloader {
-    val regex: Regex = "classpath:(.*)".r
-
-    override def open(path: String)(implicit ec: ExecutionContext): Option[Future[InputStream]] = {
-      path match {
-        case regex(matchPath) =>
-          Some(BlockingFuture {
-            getClass.getClassLoader.getResource(matchPath).openStream()
-          })
-        case _ => None
-      }
-    }
-  }
-
-  object URLFileDownloader extends FileDownloader {
-    val regex: Regex = "(?:http|https|file|jar):.*".r
-
-    override def open(path: String)(implicit ec: ExecutionContext): Option[Future[InputStream]] = {
-      path match {
-        case regex() =>
-          Some(BlockingFuture {
-            new URL(path).openStream()
-          })
-        case _ =>
-          None
-      }
-    }
-  }
-
-
-  object BashFileDownloader extends FileDownloader {
-    val regex: Regex = "bash:(.*)".r
-
-    override def open(path: String)(implicit ec: ExecutionContext): Option[Future[InputStream]] = {
-      path match {
-        case regex(command) =>
-          Some(BlockingFuture {
-            val processBuilder = new java.lang.ProcessBuilder("bash", "-c", command)
-            val process = processBuilder.start()
-            new FilterInputStream(process.getInputStream) {
-              override def close(): Unit = {
-                super.close()
-                blocking {
-                  process.waitFor()
-                }
-              }
-            }
-          })
-        case _ => None
-      }
-    }
-  }
-
-
 }
